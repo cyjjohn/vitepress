@@ -1,0 +1,5 @@
+docs/.vitepress
+node_modules
+cache
+dist
+/helm/*
