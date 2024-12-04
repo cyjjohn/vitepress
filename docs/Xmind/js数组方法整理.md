@@ -2,4 +2,4 @@
   import XmindViewer from '@/XmindViewer'
 </script>
 
-<XmindViewer url="/Xmind/js数组方法整理.xmind"/>
+<XmindViewer url="/js数组方法整理.xmind"/>
