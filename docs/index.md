@@ -4,22 +4,31 @@ layout: home
 
 hero:
   name: "hello world!"
-  text: "我的编程技术博客"
-  tagline: My great project tagline
+  text: "我的技术博客"
+  tagline: k8s prometheus javascript react ...
   actions:
     - theme: brand
-      text: Markdown Examples
-      link: /markdown-examples
+      text: Linux
+      link: /OS/Linux/
     - theme: alt
-      text: API Examples
-      link: /api-examples
+      text: Kubernetes
+      link: /DevOps/K8s/k8s搭建
+    - theme: alt
+      text: Prometheus
+      link: /DevOps/Prometheus/
+    - theme: alt
+      text: 前端
+      link: /Frontend
 
 features:
-  - title: Feature A
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature B
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature C
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  - title: Home
+    details: 技术改变世界
+    icon: 🛠️
+  - title: Home
+    details: 技术改变世界
+    icon: 🛠️
+  - title: Home
+    details: 技术改变世界
+    icon: 🛠️
 ---
 
