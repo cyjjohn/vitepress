@@ -1,6 +1,7 @@
 import { defineConfig } from "vitepress";
 import path from 'path'
 import {genSidebar} from '../genSidebar'
+import {genXmindMd} from '../genXmindMd'
 
 const SRC_DIR = "./docs"
 

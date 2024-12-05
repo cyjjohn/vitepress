@@ -837,54 +837,57 @@ data:
       smtp_from: 'xxx.xxx@gmail.com' #根据自己申请的发件邮箱进行配置
       smtp_auth_username: 'xxx.xxx@gmail.com'
       smtp_auth_password: 'xxxxxxxx'
+      
+      # 企微
+      wechat_api_url: 'https://qyapi.weixin.qq.com/cgi-bin/'    # 企业微信的api_url，无需修改
+      wechat_api_corp_id: 'xxxxxxxxxx'      # 企业微信中企业ID
+      wechat_api_secret: 'xxxxxxxxxxxxx'      # 企业微信中，Prometheus应用的Secret
 
-     #告警模板
+    #告警模板
     templates:
     - '/etc/templates/*.tmpl'
     
       # 所有报警都会进入到这个根路由下，可以根据根路由下的子路由设置报警分发策略
 
     route:      #分组
-     # 先解释一下分组，分组就是将多条告警信息聚合成一条发送，这样就不会收到连续的报警了。
-     # 将传入的告警按标签分组(标签在prometheus中的rules中定义)，例如：
-     # 接收到的告警信息里面有许多具有cluster=A 和 alertname=LatencyHigh的标签，
-     # 这些个告警将被分为一个组。
-     # 如果不想使用分组，可以这样写group_by: [...]
+      # 先解释一下分组，分组就是将多条告警信息聚合成一条发送，这样就不会收到连续的报警了。
+      # 将传入的告警按标签分组(标签在prometheus中的rules中定义)，例如：
+      # 接收到的告警信息里面有许多具有cluster=A 和 alertname=LatencyHigh的标签，
+      # 这些个告警将被分为一个组。
+      # 如果不想使用分组，可以这样写group_by: [...]
       group_by: ['instance']
 
-     # 第一组告警发送通知需要等待的时间，这种方式可以确保有足够的时间为同一分组获取多个告警，
-     # 然后一起触发这个告警信息。
+      # 第一组告警发送通知需要等待的时间，这种方式可以确保有足够的时间为同一分组获取多个告警，
+      # 然后一起触发这个告警信息。
       group_wait: 10s
 
-     # 发送第一个告警后，等待"group_interval"发送一组新告警
+      # 发送第一个告警后，等待"group_interval"发送一组新告警
       group_interval: 5m
 
-     # 分组内发送相同告警的时间间隔。这里的配置是每1小时发送告警到分组中。
-     # 举个例子：收到告警后，一个分组被创建，等待10分钟发送组内告警，
-     # 如果后续组内的告警信息相同,这些告警会在1小时后发送，但是1小时内这些告警不会被发送。
+      # 分组内发送相同告警的时间间隔。这里的配置是每1小时发送告警到分组中。
+      # 举个例子：收到告警后，一个分组被创建，等待10分钟发送组内告警，
+      # 如果后续组内的告警信息相同,这些告警会在1小时后发送，但是1小时内这些告警不会被发送。
       repeat_interval: 1h
       
-     # 这里先说一下，告警发送是需要指定接收器的，接收器在receivers中配置，
-     # 接收器可以是email、webhook、pagerduty、wechat等等。一个接收器可以有多种发送方式。
-     # 指定默认的接收器
+      # 这里先说一下，告警发送是需要指定接收器的，接收器在receivers中配置，
+      # 接收器可以是email、webhook、pagerduty、wechat等等。一个接收器可以有多种发送方式。
+      # 指定默认的接收器
       receiver: 'Prometheusalert-Notice'
 
 
-    #   # 下面配置的是子路由，子路由的属性继承于根路由(即上面的配置)，在子路由中可以覆盖根路由的配置
+      ## 下面配置的是子路由，子路由的属性继承于根路由(即上面的配置)，在子路由中可以覆盖根路由的配置
  
       routes: 
-       # 这里也是一条子路由，会匹配出标签含有service=files的告警，并使用team-Y-mails接收器发送告警
-       - match:
-           severity: warning
-         receiver: 'Prometheusalert-critical'
-       - match:
-           severity: critical
-         receiver: 'Prometheusalert-critical'
-         # 这里配置的是子路由的子路由，当满足父路由的的匹配时，这条子路由会进一步匹配出severity=critical的告警，并使用team-Y-pager接收器发送告警，没有匹配到的会由父路由进行处理。
-        #  routes:
-        #  - match:
-        #      severity: critical
-        #    receiver: team-Y-pager
+        - match:
+            severity: warning
+          receiver: 'Prometheusalert-critical'
+        - match:
+            severity: critical
+          receiver: 'Prometheusalert-critical'
+        - match:
+            alertName: wechat
+          receiver: 'wechat_receiver'
+       
  
     #     # 下面是关于inhibit(抑制)的配置，先说一下抑制是什么：抑制规则允许在另一个警报正在触发的情况下使一组告警静音。其实可以理解为告警依赖。比如一台数据库服务器掉电了，会导致db监控告警、网络告警等等，可以配置抑制规则如果服务器本身down了，那么其他的报警就不会被发送出来。
  
@@ -906,16 +909,16 @@ data:
 
     ## 以下为接收器Prometheusalert-critical的配置
     - name: 'Prometheusalert-critical'
-      webhook_configs:
-      - url: 'http://prometheus-alert-center.monitoring.svc.cluster.local:8080/prometheusalert?type=fs&tpl=prometheus-fs&fsurl=https://open.larksuite.com/open-apis/bot/v2/hook/cbc78594-ff38-xxxxxxxxx'
       email_configs:
       - to: 'xxxxxx@gmail.com'
         send_resolved: true    #告警恢复通知-开启
         html: '{{ template "email.html" . }}'  #此处通过html指定模板文件中定义的email.html模板
-      - to: 'xxxxx@163.com'
-        send_resolved: true    #告警恢复通知-开启
-        html: '{{ template "email.html" . }}'  #此处通过html指定模板文件中定义的email.html模板
-      - to: 'xxxxxx.xxx@xxx.com'
-        send_resolved: true    #告警恢复通知-开启
-        html: '{{ template "email.html" . }}'  #此处通过html指定模板文件中定义的email.html模板
+    - name: 'wechat_receiver'
+      wechat_configs:
+        - message: '{{ template "wechat.default.message" . }}'
+          to_party: '2'         # 企业微信中创建的接收告警的告警部门ID
+          to_user: '@all'
+          agent_id: '1000002'     # 企业微信中创建应用的AgentId
+          api_secret: 'xxxxxxxxxxxxx'      # 企业微信中，Prometheus应用的Secret
+          send_resolved: true
 ```

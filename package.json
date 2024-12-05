@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "predev": "node genXmindMd.js",
     "dev": "vitepress dev",
     "build": "vitepress build",
     "preview": "vitepress preview"
