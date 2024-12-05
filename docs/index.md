@@ -23,12 +23,19 @@ hero:
 features:
   - title: Home
     details: 技术改变世界
-    icon: 🛠️
-  - title: Home
-    details: 技术改变世界
-    icon: 🛠️
-  - title: Home
-    details: 技术改变世界
-    icon: 🛠️
+    icon: 
+      src: /svg/tool.svg
+      width: 30px
+      height: 30px
+  - title: Learn
+    details: 学习开拓视野
+    icon: 
+      src: /svg/all.svg
+      width: 40px
+      height: 40px
+  - title: Xmind
+    details: 一些思维导图
+    icon: 
+      src: /svg/xmind.svg
+    link: /Xmind/js数组方法整理
 ---
-
