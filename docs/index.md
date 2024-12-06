@@ -9,16 +9,16 @@ hero:
   actions:
     - theme: brand
       text: Linux
-      link: /OS/Linux/
+      link: /OS/Linux/Linux_centos_LVM分区挂盘
     - theme: alt
       text: Kubernetes
       link: /DevOps/K8s/k8s搭建
     - theme: alt
       text: Prometheus
-      link: /DevOps/Prometheus/
+      link: /DevOps/Prometheus/资源清单
     - theme: alt
       text: 前端
-      link: /Frontend
+      link: /Frontend/JavaScript/JS正则表达式的分组匹配
 
 features:
   - title: Home

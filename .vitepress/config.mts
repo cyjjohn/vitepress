@@ -1,7 +1,6 @@
 import { defineConfig } from "vitepress";
 import path from 'path'
 import {genSidebar} from '../genSidebar'
-import {genXmindMd} from '../genXmindMd'
 
 const SRC_DIR = "./docs"
 
@@ -54,7 +53,7 @@ export default defineConfig({
       {
         text: "前端",
         items: [
-          { text: "JavaScript", link: "/Frontend/JavaScript/ES6技巧总结" },
+          { text: "JavaScript", link: "/Frontend/JavaScript/JS正则表达式的分组匹配" },
           {
             text: "React",
             link: "/Frontend/React/vite创建react标准化项目流程",
@@ -74,6 +73,13 @@ export default defineConfig({
       {
         text: "Xmind",
         items: [{ text: "js数组方法整理", link: "/Xmind/js数组方法整理" }],
+      },
+      {
+        text: "Links",
+        items: [
+          { text: "MDN", link: "https://developer.mozilla.org/zh-CN/docs/Web" },
+          { text: "Markdown语法速查", link: "https://markdown.com.cn/cheat-sheet.html" },
+        ],
       },
     ],
 
