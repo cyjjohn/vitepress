@@ -1,5 +1,5 @@
 ## configMap.yml
-```
+```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -61,7 +61,8 @@ data:
       - /etc/prometheus/config/rules.yml
 ```
 ## pvc.yml
-```
+按需手动指定pv或通过storageClass和provisioner自动分配
+```yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -87,7 +88,7 @@ spec:
     path: /Users/chenyijie23/server/prometheus/data  # 存储路径
 ```
 ## deployment.yml
-```
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -145,7 +146,7 @@ spec:
           claimName: prometheus-pvc
 ```
 ## service.yml
-```
+```yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -161,4 +162,26 @@ spec:
       targetPort: 9090
   selector:
     app: prometheus
+```
+## rbac.yml 
+此处偷懒使用了cluster-admin
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: monitor-sa
+  namespace: monitor
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-binding
+subjects:
+- kind: ServiceAccount
+  name: monitor-sa
+  namespace: monitor
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
 ```

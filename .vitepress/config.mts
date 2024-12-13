@@ -40,14 +40,15 @@ export default defineConfig({
         text: "DevOps",
         items: [
           { text: "Kubernetes系列", link: "/DevOps/K8s/k8s搭建" },
-          { text: "Prometheus系列", link: "/DevOps/Prometheus/资源清单" },
+          { text: "ElasticSearch系列", link: "/DevOps/ES/ElasticSearch资源清单" },
+          { text: "Prometheus系列", link: "/DevOps/Prometheus/Prometheus基于kubernetes告警规则-告警等级划分" },
         ],
       },
       {
         text: "操作系统",
         items: [
           { text: "Linux", link: "/OS/Linux/Linux_centos_LVM分区挂盘" },
-          { text: "Mac", link: "/OS/Mac/mac安装使用HomeBrew" },
+          { text: "Mac", link: "/OS/Mac/Mac安装使用HomeBrew" },
         ],
       },
       {
