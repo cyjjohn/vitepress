@@ -18,7 +18,7 @@ hero:
       link: /DevOps/Prometheus/资源清单
     - theme: alt
       text: 前端
-      link: /Frontend/JavaScript/JS正则表达式的分组匹配
+      link: /Frontend/JavaScript/正则表达式的分组匹配
 
 features:
   - title: Home
