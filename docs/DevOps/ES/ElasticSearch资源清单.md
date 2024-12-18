@@ -29,7 +29,6 @@ spec:
     whenScaled: Retain
   podManagementPolicy: Parallel
   replicas: 3
-  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: elasticsearch-master
@@ -65,7 +64,7 @@ spec:
         - name: node.roles
           value: master,data,data_content,data_hot,data_warm,data_cold,ingest,ml,remote_cluster_client,transform,
         - name: discovery.seed_hosts
-          value: elasticsearch-master-headless
+          value: "elasticsearch-master-0.elasticsearch-master-headless.kube-logging.svc.cluster.local:9300,elasticsearch-master-1.elasticsearch-master-headless.kube-logging.svc.cluster.local:9300,elasticsearch-master-2.elasticsearch-master-headless.kube-logging.svc.cluster.local:9300"
         - name: cluster.name
           value: elasticsearch
         - name: network.host
@@ -78,6 +77,8 @@ spec:
         - name: xpack.security.enabled
           value: "true"
         - name: xpack.security.transport.ssl.enabled
+          value: "true"
+        - name: xpack.security.enrollment.enabled
           value: "true"
         - name: xpack.security.http.ssl.enabled
           value: "true"
@@ -146,7 +147,7 @@ spec:
                 HTTP_CODE=$(http "/" "-w %{http_code}")
                 RC=$?
                 if [[ ${RC} -ne 0 ]]; then
-                  echo "curl --output /dev/null -k -XGET -s -w '%{http_code}' \${BASIC_AUTH} https://127.0.0.1:9200/ failed with RC ${RC}"
+                  echo "curl --output /dev/null -k -XGET -s -w '%{http_code}' \${ELASTIC_PASSWORD} https://127.0.0.1:9200/ failed with RC ${RC}"
                   exit ${RC}
                 fi
                 # ready if HTTP code 200, 503 is tolerable if ES version is 6.x
@@ -155,7 +156,7 @@ spec:
                 elif [[ ${HTTP_CODE} == "503" && "8" == "6" ]]; then
                   exit 0
                 else
-                  echo "curl --output /dev/null -k -XGET -s -w '%{http_code}' \${BASIC_AUTH} https://127.0.0.1:9200/ failed with HTTP code ${HTTP_CODE}"
+                  echo "curl --output /dev/null -k -XGET -s -w '%{http_code}' \${ELASTIC_PASSWORD} https://127.0.0.1:9200/ failed with HTTP code ${HTTP_CODE}"
                   exit 1
                 fi
 
@@ -187,29 +188,24 @@ spec:
             - ALL
           runAsNonRoot: true
           runAsUser: 1000
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /usr/share/elasticsearch/data
           name: elasticsearch-master
         - mountPath: /usr/share/elasticsearch/config/certs
           name: elasticsearch-certs
           readOnly: true
-      dnsPolicy: ClusterFirst
-      enableServiceLinks: true
       initContainers:
       - command:
         - sysctl
         - -w
         - vm.max_map_count=262144
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.5.1
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.16.1
         imagePullPolicy: IfNotPresent
         name: configure-sysctl
         resources: {}
         securityContext:
           privileged: true
           runAsUser: 0
-        terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -234,7 +230,7 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: 30Gi
+          storage: 10Gi
       volumeMode: Filesystem
 ```
 ## es-svc.yml
@@ -287,9 +283,6 @@ spec:
   clusterIPs:
   - None
   internalTrafficPolicy: Cluster
-  ipFamilies:
-  - IPv4
-  ipFamilyPolicy: SingleStack
   ports:
   - name: http
     port: 9200
@@ -327,32 +320,41 @@ spec:
 - -addext "subjectAltName = DNS:yourserver.example.com": 非常重要! 添加主题备用名称 (SAN)，将 yourserver.example.com 替换为你的服务器域名或 IP 地址。 这可以防止出现证书不匹配的错误。 你可以添加多个 SAN，例如：subjectAltName = DNS:yourserver.example.com,DNS:yourserver
 
 3. 使用 CA 证书签署服务器 CSR:
-``openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 3650 -sha256 -extfile <(echo "subjectAltName = DNS:elasticsearch-master.kube-logging.svc.cluster.local,DNS:elasticsearch-master-0.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-1.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-2.elasticsearch-master-headless.kube-logging.svc.cluster.local")``
+``openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 3650 -sha256 -extfile < (echo "subjectAltName = DNS:elasticsearch-master.kube-logging.svc.cluster.local,DNS:elasticsearch-master-0.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-1.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-2.elasticsearch-master-headless.kube-logging.svc.cluster.local")``
 
 
 ## CSR中subjectAltName的DNS
 如果使用k8s的service有几种方案:
 1. 使用 Kubernetes Service DNS 名称：  这是推荐的方法。为你的 Elasticsearch 集群创建一个 Kubernetes Service，然后在证书的 SAN 中使用 Service 的 DNS 名称。  Service 的 DNS 名称会解析到后端 Pod 的 IP 地址，即使 Pod 重建，DNS 名称也保持不变。
 
-2. 确保你的 Elasticsearch 配置使用 Service DNS 名称进行节点之间的通信和客户端连接。 例如，在 elasticsearch.yml 中，使用 discovery.seed_hosts: ["<elasticsearch-service-name>.<namespace>.svc.cluster.local:9300"]。
-在生成证书时，将 <elasticsearch-service-name>.<namespace>.svc.cluster.local 添加到 SAN。
-使用 StatefulSet 和 Headless Service：  如果你使用 StatefulSet 来管理 Elasticsearch 集群，可以创建一个 Headless Service。 Headless Service 会为每个 Pod 分配一个稳定的 DNS 名称，例如 <pod-name>.<headless-service-name>.<namespace>.svc.cluster.local。  你可以在证书的 SAN 中包含这些稳定的 DNS 名称。
+2. 确保你的 Elasticsearch 配置使用 Service DNS 名称进行节点之间的通信和客户端连接。 例如，在 elasticsearch.yml 中，使用 discovery.seed_hosts: ["&lt;elasticsearch-service-name&gt;.&lt;namespace&gt;.svc.cluster.local:9300"]。
+在生成证书时，将 &lt;elasticsearch-service-name&gt;.&lt;namespace&gt;.svc.cluster.local 添加到 SAN。
+使用 StatefulSet 和 Headless Service：  如果你使用 StatefulSet 来管理 Elasticsearch 集群，可以创建一个 Headless Service。 Headless Service 会为每个 Pod 分配一个稳定的 DNS 名称，例如 &lt;pod-name&gt;.&lt;headless-service-name&gt;.&lt;namespace&gt;.svc.cluster.local。  你可以在证书的 SAN 中包含这些稳定的 DNS 名称。
 
 ## 创建secrets
+存放cert
 ```bash
 kubectl -n kube-logging create secret generic elasticsearch-master-certs --from-file=tls.key=/tmp/server.key --from-file=tls.crt=/tmp/server.crt --from-file=ca.crt=/tmp/ca.crt
-
+```
+存放用户密码
+```bash
 kubectl -n kube-logging create secret generic elasticsearch-master-credentials --from-literal=username=elastic --from-literal=password=123456
 ```
 
 ## 验证
 1. 查看集群中的Pod是否启动
-  kubectl get pods --namespace=kube-logging -l app=elasticsearch-master -w
+```bash
+kubectl get pods --namespace=kube-logging -l app=elasticsearch-master -w
+```
 2. 查看elastic用户初始密码
-  kubectl get secrets --namespace=kube-logging elasticsearch-master-credentials -ojsonpath='{.data.password}' | base64 -d
+```bash
+kubectl get secrets --namespace=kube-logging elasticsearch-master-credentials -ojsonpath='{.data.password}' | base64 -d
+```
 3. 查看状态
-  kubectl -n kube-logging port-forward elasticsearch-master-0 9200:9200 
-  curl -X GET "https://localhost:9200/_cluster/health?pretty" -u "username:password" --cacert /path/to/ca.crt
+```bash
+kubectl -n kube-logging port-forward elasticsearch-master-0 9200:9200
+curl -X GET "https://localhost:9200/_cluster/health?pretty" -u "username:password" --cacert /path/to/ca.crt
+```
 
 ## 创建/修改密码
 [8.16版本官网指南](https://elastic.ac.cn/guide/en/elasticsearch/reference/8.16/reset-password.html)
