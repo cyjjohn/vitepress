@@ -305,55 +305,44 @@ spec:
   sessionAffinity: None
   type: ClusterIP
 ```
-## es-secret.yml
-先生成tls.key和tls.crt并base64编码
+## 创建带有Subject Alternative Name (SAN)的自签名证书
+生成 CA 签名证书通常需要使用 OpenSSL 或类似的工具。  以下步骤概述了如何使用 OpenSSL 生成 CA 证书以及如何使用 CA 证书签署其他证书。
+1. 创建 CA 私钥和自签名证书:
+``openssl req -x509 -newkey rsa:4096 -keyout ca.key -out ca.crt -days 3650 -nodes -subj "/CN=elasticsearch/O=CMB/OU=My Unit/L=Shanghai/ST=My State/C=CN"``
+- -x509: 生成自签名证书。
+- -newkey rsa:4096: 生成一个 4096 位的 RSA 私钥。
+- -keyout ca.key: 将私钥保存到 ca.key 文件。
+- -out ca.crt: 将证书保存到 ca.crt 文件。
+- -days 3650: 证书有效期为 10 年。
+- -nodes: 不加密私钥。 注意：在生产环境中，强烈建议加密私钥。
+- -subj: 指定证书主题信息。 请替换为你的实际信息。
+
+2. 创建服务器证书签名请求 (CSR):
+``openssl req -newkey rsa:4096 -keyout server.key -out server.csr -nodes -subj "/C=CN/ST=My State/L=Shanghai/O=CMB/OU=My Unit/CN=elasticsearch" -addext "subjectAltName = DNS:elasticsearch-master.kube-logging.svc.cluster.local,DNS:elasticsearch-master-0.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-1.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-2.elasticsearch-master-headless.kube-logging.¡svc.cluster.local"``
+- -newkey rsa:4096: 生成一个 4096 位的 RSA 私钥。
+- -keyout server.key: 将私钥保存到 server.key 文件。
+- -out server.csr: 将 CSR 保存到 server.csr 文件。
+- -nodes: 不加密私钥。 注意：在生产环境中，强烈建议加密私钥。
+- -subj: 指定证书主题信息。 请替换为你的实际信息。
+- -addext "subjectAltName = DNS:yourserver.example.com": 非常重要! 添加主题备用名称 (SAN)，将 yourserver.example.com 替换为你的服务器域名或 IP 地址。 这可以防止出现证书不匹配的错误。 你可以添加多个 SAN，例如：subjectAltName = DNS:yourserver.example.com,DNS:yourserver
+
+3. 使用 CA 证书签署服务器 CSR:
+``openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 3650 -sha256 -extfile <(echo "subjectAltName = DNS:elasticsearch-master.kube-logging.svc.cluster.local,DNS:elasticsearch-master-0.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-1.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-2.elasticsearch-master-headless.kube-logging.svc.cluster.local")``
+
+
+## CSR中subjectAltName的DNS
+如果使用k8s的service有几种方案:
+1. 使用 Kubernetes Service DNS 名称：  这是推荐的方法。为你的 Elasticsearch 集群创建一个 Kubernetes Service，然后在证书的 SAN 中使用 Service 的 DNS 名称。  Service 的 DNS 名称会解析到后端 Pod 的 IP 地址，即使 Pod 重建，DNS 名称也保持不变。
+
+2. 确保你的 Elasticsearch 配置使用 Service DNS 名称进行节点之间的通信和客户端连接。 例如，在 elasticsearch.yml 中，使用 discovery.seed_hosts: ["<elasticsearch-service-name>.<namespace>.svc.cluster.local:9300"]。
+在生成证书时，将 <elasticsearch-service-name>.<namespace>.svc.cluster.local 添加到 SAN。
+使用 StatefulSet 和 Headless Service：  如果你使用 StatefulSet 来管理 Elasticsearch 集群，可以创建一个 Headless Service。 Headless Service 会为每个 Pod 分配一个稳定的 DNS 名称，例如 <pod-name>.<headless-service-name>.<namespace>.svc.cluster.local。  你可以在证书的 SAN 中包含这些稳定的 DNS 名称。
+
+## 创建secrets
 ```bash
-# 生成ca.key ca.crt
-openssl genrsa -out ca.key 2048
-openssl req -new -x509 -days 365 -key ca.key -out ca.crt
-# 生成tlk.key tlk.crt
-openssl genrsa -out tls.key 2048
-openssl req -new -key tls.key -out tls.csr
-openssl x509 -req -in tls.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out tls.crt -days 365
-# secret资源中需要bas64编码
-base64 ca.crt
-base64 tls.crt
-base64 tls.key
-```
-```yaml
-apiVersion: v1
-data:
-  ca.crt: 已省略...
-  tls.crt: 已省略...
-  tls.key: 已省略...
-kind: Secret
-metadata:
-  annotations:
-    meta.helm.sh/release-name: elasticsearch
-    meta.helm.sh/release-namespace: kube-logging
-  labels:
-    app: elasticsearch-master
-    chart: elasticsearch
-  name: elasticsearch-master-certs
-  namespace: kube-logging
-type: kubernetes.io/tls
----
-apiVersion: v1
-data:
-  password: RlRFM3FaYmJEcmJDM1ZHUA==
-  username: ZWxhc3RpYw==
-kind: Secret
-metadata:
-  annotations:
-    meta.helm.sh/release-name: elasticsearch
-    meta.helm.sh/release-namespace: kube-logging
-  labels:
-    app: elasticsearch-master
-    chart: elasticsearch
-    release: elasticsearch
-  name: elasticsearch-master-credentials
-  namespace: kube-logging
-type: Opaque
+kubectl -n kube-logging create secret generic elasticsearch-master-certs --from-file=tls.key=/tmp/server.key --from-file=tls.crt=/tmp/server.crt --from-file=ca.crt=/tmp/ca.crt
+
+kubectl -n kube-logging create secret generic elasticsearch-master-credentials --from-literal=username=elastic --from-literal=password=123456
 ```
 
 ## 验证
@@ -364,3 +353,11 @@ type: Opaque
 3. 查看状态
   kubectl -n kube-logging port-forward elasticsearch-master-0 9200:9200 
   curl -X GET "https://localhost:9200/_cluster/health?pretty" -u "username:password" --cacert /path/to/ca.crt
+
+## 创建/修改密码
+[8.16版本官网指南](https://elastic.ac.cn/guide/en/elasticsearch/reference/8.16/reset-password.html)
+
+修改kibana用户的密码
+```bash
+bin/elasticsearch-reset-password -u kibana --url "https://elasticsearch-master-0.elasticsearch-master-headless.kube-logging.svc.cluster.local:9200" -i
+```

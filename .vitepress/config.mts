@@ -54,7 +54,7 @@ export default defineConfig({
       {
         text: "前端",
         items: [
-          { text: "JavaScript", link: "/Frontend/JavaScript/JS正则表达式的分组匹配" },
+          { text: "JavaScript", link: "/Frontend/JavaScript/正则表达式的分组匹配" },
           {
             text: "React",
             link: "/Frontend/React/vite创建react标准化项目流程",
