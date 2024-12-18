@@ -38,17 +38,37 @@ function checkFileForHtmlCharacters(filePath) {
     let inCodeBlock = false;
     let issuesFound = false;
 
-    lines.forEach((line, index) => {
-        if (line.trim().startsWith('``')) {
+    const updatedLines = lines.map((line, index) => {
+        if (line.trim().startsWith('```')) {
             inCodeBlock = !inCodeBlock; // 反转代码块状态
         }
 
         // 不在代码块内 不是引用块
-        if (!inCodeBlock && !line.trim().startsWith('> ') && (line.includes('<') || line.includes('>'))) {
-            console.log(`在文件 ${filePath} 的第 %c${index + 1}`,'color:red',`行发现未转义字符：${line.trim()}`);
-            issuesFound = true;
+        if (!inCodeBlock && !line.trim().startsWith('> ')) {
+            // 处理行内代码
+            let parts = line.split(/(`{1,2}.*?`{1,2})/);
+            parts = parts.map(part => {
+                // 检查并替换不在行内代码中的部分
+                if (!part.startsWith('`')) {
+                    if (/[<>]/.test(part)) {
+                        console.log(`在文件 ${filePath} 的第 %c${index + 1}`,'color:red',`行发现未转义字符：${line.trim()}`);
+                        issuesFound = true;
+                        part = part.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    }
+                }
+                return part;
+            });
+            line = parts.join('');
         }
+
+        return line
     });
+
+    // if (issuesFound) {
+    //     // 将更新后的内容写回文件
+    //     fs.writeFileSync(filePath, updatedLines.join('\n'), 'utf8');
+    //     console.log(`已更新文件 ${filePath} 中的未转义字符。`);
+    // }
 
     return issuesFound;
 }
