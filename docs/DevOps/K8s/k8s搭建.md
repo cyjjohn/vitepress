@@ -29,6 +29,8 @@ sysctl -p (执行这个使其生效，不用重启)
 # 时间同步
 ntpdate 0.pool.ntp.org (国外时间)
 ntpdate ntp.ntsc.ac.cn (国内时间)
+# 高版本
+chronyc makestep
 # 设置时区
 timedatectl set-timezone Asia/Shanghai
 
@@ -44,9 +46,11 @@ wget -o /etc/yum.repos.d/Centos-7.repo http://mirrors.aliyun.com/repo/Centos-7.r
 sed -i 's/$releasever/7/g' Centos-7.repo
 
 # 配置docker-ce 国内yum源 
+yum install -y yum-utils
 yum-config-manager --add-repo https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/centos/docker-ce.repo
-yum install docker-ce -y
-systemctl start docker && systemctl enable docker
+# 安装containerd
+yum install containerd.io -y
+
 
 # container配置 注释解开
 vi /etc/containerd/config.toml
@@ -60,6 +64,28 @@ version = 2
           runtime_type = "io.containerd.runc.v2"
           [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
             SystemdCgroup = true
+[plugins."io.containerd.grpc.v1.cri".registry]
+   config_path = "/etc/containerd/certs.d"
+
+mkdir -p /etc/containerd/certs.d/docker.io
+mkdir -p /etc/containerd/certs.d/registry.k8s.io
+
+touch /etc/containerd/certs.d/docker.io/hosts.toml
+touch /etc/containerd/certs.d/registry.k8s.io/hosts.toml
+
+cat>/etc/containerd/certs.d/docker.io/hosts.toml<<EOF
+server = "https://docker.io"
+
+[host."https://dockerproxy.net/"]
+  capabilities = ["pull", "resolve"]
+EOF
+
+cat>/etc/containerd/certs.d/registry.k8s.io/hosts.toml<<EOF
+server = "registry.k8s.io"
+
+[host."k8s.mirror.nju.edu.cn"]
+  capabilities = ["pull", "resolve"]
+EOF
 
 systemctl restart containerd
 
@@ -87,19 +113,18 @@ net.ipv4.ip_forward = 1
 $ sysctl -p /etc/sysctl.d/k8s.conf
 ```
 
-### 安装 ipvs
+### 安装 ipvs（所有节点）
 
-```
+```bash
 yum -y install ipvsadm ipset
-$ cat > /etc/sysconfig/modules/ipvs.modules <<EOF
-#!/bin/bash
-modprobe -- ip_vs
-modprobe -- ip_vs_rr
-modprobe -- ip_vs_wrr
-modprobe -- ip_vs_sh
-modprobe -- nf_conntrack_ipv4
-EOF
-$ chmod 755 /etc/sysconfig/modules/ipvs.modules && bash /etc/sysconfig/modules/ipvs.modules && lsmod | grep -e ip_vs -e nf
+# 开启模块
+modprobe ip_vs
+modprobe ip_vs_rr
+modprobe ip_vs_wrr
+modprobe ip_vs_sh
+modprobe nf_conntrack
+# 模块是否加载成功
+lsmod | grep ip_vs
 ```
 
 ## keepalive + nginx 部署高可用k8s api server
@@ -261,60 +286,28 @@ ip a # 验证
 cat > /etc/yum.repos.d/kubernetes.repo <<EOF
 [kubernetes] 
 name=Kubernetes 
-baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/ 
+baseurl=https://mirrors.aliyun.com/kubernetes-new/core/stable/v1.30/rpm/
 enabled=1 
 gpgcheck=0 
 EOF
 
 # 安装
-*yum makecache fast
-yum install -y kubelet kubeadm kubectl* 
+yum makecache
+yum install -y kubelet kubeadm kubectl 
 ```
 
-### 修改kubeadmin配置，使用本地镜像
-
+### 拉取镜像、使用本地镜像（可选）
 ```bash
-apiVersion: kubeadm.k8s.io/v1beta3
-kind: ClusterConfiguration
-kubernetesVersion: v1.30.3
-controlPlaneEndpoint: 192.168.56.199:16443
-imageRepository: registry.aliyuncs.com/google_containers
-apiServer:
- certSANs:
- - 192.168.56.100
- - 192.168.56.101
- - 192.168.56.102
- - 192.168.56.199
-networking:
-  podSubnet: 10.244.0.0/16
-  serviceSubnet: 10.10.0.0/16
----
-apiVersion: kubeproxy.config.k8s.io/v1alpha1
-kind:  KubeProxyConfiguration
-mode: ipvs
-```
-
-### 准备本地镜像（可选）
-
-```bash
-docker pull registry.aliyuncs.com/google_containers/kube-apiserver:v1.30.3
-docker pull registry.aliyuncs.com/google_containers/kube-controller-manager:v1.30.3
-docker pull registry.aliyuncs.com/google_containers/kube-scheduler:v1.30.3
-docker pull registry.aliyuncs.com/google_containers/kube-proxy:v1.30.3
-docker pull registry.aliyuncs.com/google_containers/pause:3.6
-docker pull registry.aliyuncs.com/google_containers/etcd:3.5.12-0
-docker pull registry.aliyuncs.com/google_containers/coredns:1.11.1
-
-docker save -o kube.tar [image...]
-
 # k8s v1.24移除了dockershim 不再支持docker
 # 需要容器运行时(CRI) 如果使用containerd 本地镜像需要导入k8s.io名称空间
+ctr -n k8s.io image pull ...
 ctr -n k8s.io image import kube.tar
+ctr -n k8s.io image -q
+# 或者
 crictl image ls
 ```
 
 ### kubeadm安装k8s
-
 ```bash
 # kubeadm.yaml
 apiVersion: kubeadm.k8s.io/v1beta3
@@ -349,7 +342,7 @@ systemctl enable kubelet
 
 # 单master
 kubeadm init --kubernetes-version=1.30.3 --apiserver-advertise-address=192.168.56.100 --image-repository=registry.aliyuncs.com/google_containers --pod-network-cidr=10.244.0.0/16 --service-cidr=10.10.0.0/16
-ctr -n k8s.io image
+ctr -n k8s.io image 
 
 # 常见问题
 # 使用的运行时containerd pause不翻墙下不到
@@ -378,7 +371,7 @@ kubeadm token create --print-join-command
 # 注意k8s与calico版本对应
 # calico支持k8s版本查看
 # https://projectcalico.docs.tigera.io/getting-started/kubernetes/requirements
-curl https://mirror.ghproxy.com/https://raw.githubusercontent.com/projectcalico/calico/master/manifests/calico.yaml -O
+curl https://raw.githubusercontent.com/projectcalico/calico/master/manifests/calico.yaml -O
 kubectl apply -f calico.yaml
 
 # 问题
