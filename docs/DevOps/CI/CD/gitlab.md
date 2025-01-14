@@ -46,3 +46,6 @@ gitlab-ctl reconfigure
 //容器中重启服务
 gitlab-ctl restart
 ```
+
+## 初始密码
+/etc/gitlab/initial_root_password
