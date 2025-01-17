@@ -42,7 +42,6 @@ export default defineConfig({
           { text: "Kubernetes系列", link: "/DevOps/K8s/k8s搭建" },
           { text: "ElasticSearch系列", link: "/DevOps/ES/ElasticSearch资源清单" },
           { text: "Prometheus系列", link: "/DevOps/Prometheus/Prometheus基于kubernetes告警规则-告警等级划分" },
-          { text: "Jenkins", link: "/DevOps/Jenkins/" },
         ],
       },
       {
@@ -74,7 +73,11 @@ export default defineConfig({
       },
       {
         text: "Xmind",
-        items: [{ text: "js数组方法整理", link: "/Xmind/js数组方法整理" }],
+        items: [
+          { text: "git", link: "/Xmind/git" },
+          { text: "快捷键", link: "/Xmind/快捷键" },
+          { text: "typescript", link: "/Xmind/typescript" },
+        ],
       },
       {
         text: "Links",

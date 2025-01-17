@@ -57,20 +57,38 @@ export function genSidebar(baseDir: string) {
     const relativePath = path.relative(baseDir, file); // 获取文件的相对路径
     const parts = relativePath.split(path.sep); // 根据路径分隔符拆分目录
     const fileName = parts.pop()!.replace(".md", ""); // 获取文件名（无扩展名）
-    const groupPath = `/${parts.join("/")}`; // 当前文件所属的分组路径
     const link = `/${relativePath.replace(/\\/g, "/").replace(".md", "")}`; // 文件的链接
 
     // 第一层目录作为顶级组路径
     const topLevelGroup = `/${parts.slice(0, 2).join("/")}`; // 保留前两层目录（如 /DevOps/ES）
 
-    // 初始化分组
-    if (!sidebar[topLevelGroup]) {
-      sidebar[topLevelGroup] = [];
-    }
+    // 特别处理 Xmind 文件夹
+    if (parts[0] === "Xmind") {
+      if (!sidebar["/Xmind"]) {
+        sidebar["/Xmind"] = [
+          {
+            text: "Xmind",
+            collapsed: false,
+            items: [],
+          },
+        ];
+      }
+      // 将文件直接添加到 Xmind 分组
+      sidebar["/Xmind"][0].items.push({ text: fileName, link });
+    } else {
+      // 初始化分组
+      if (!sidebar[topLevelGroup]) {
+        sidebar[topLevelGroup] = [];
+      }
 
-    // 按分组添加文件
-    addToSidebarGroup(sidebar[topLevelGroup], parts.slice(1), fileName, link);
+      // 按分组添加文件
+      addToSidebarGroup(sidebar[topLevelGroup], parts.slice(1), fileName, link);
+    }
   });
 
   return sidebar;
 }
+
+// 测试用例
+// const sidebar = genSidebar("./docs/");
+// debugger
