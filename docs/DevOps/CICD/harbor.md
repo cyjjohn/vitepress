@@ -71,10 +71,12 @@ vim /etc/containerd/config.toml
   password="Harbor1234
 ---
 
+# 默认读取config_path/<host_namespace>/hosts.toml
 mkdir -p /etc/containerd/certs.d/115.120.192.187/
-vi /etc/containerd/certs.d/115.120.192.187/host.toml
+vi /etc/containerd/certs.d/115.120.192.187/hosts.toml
 ---
-server = "http://115.120.192.187"
+# 默认似乎会使用https访问私有仓库 server这里写https 下面host写http
+server = "https://115.120.192.187"
 
 [host."http://115.120.192.187"]
   capabilities = ["pull", "resolve", "push"]
