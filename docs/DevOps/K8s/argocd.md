@@ -30,3 +30,9 @@ spec:
 ## 安装ingress控制器
 官方资源清单
 https://gh-proxy.com/https://raw.githubusercontent.com/kubernetes/ingress-nginx/refs/tags/controller-v1.12.0/deploy/static/provider/cloud/deploy.yaml
+
+## 确保LoadBalancer正常
+本地环境需安装metalLB用于测试
+
+## 设置HOSTS
+在/etc/hosts中添加LoadBalancer绑定的地址

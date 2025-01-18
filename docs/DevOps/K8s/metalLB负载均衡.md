@@ -10,7 +10,7 @@ ipvs:
 使用yaml安装
 ```bash
 curl -O https://raw.githubusercontent.com/metallb/metallb/refs/tags/v0.14.9/config/manifests/metallb-native.yaml
-kubectl appy -f metallb-native.yaml
+kubectl apply -f metallb-native.yaml
 ```
 
 ## Layer 2 模式配置
