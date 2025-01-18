@@ -19,17 +19,14 @@ vim /etc/selinux/config
 SELINUX=disabled
 
 # 关闭swap
-永久生效：
 echo "vm.swappiness = 0">> /etc/sysctl.conf （尽量不使用交换分区，注意不是禁用）
-刷新SWAP
-可以执行命令刷新一次SWAP（将SWAP里的数据转储回内存，并清空SWAP里的数据）
-swapoff -a
 sysctl -p (执行这个使其生效，不用重启)
+关闭SWAP
+swapoff -a
+卸载swap
+注释掉/etc/fstab中的swap
 
-# 时间同步
-ntpdate 0.pool.ntp.org (国外时间)
-ntpdate ntp.ntsc.ac.cn (国内时间)
-# 高版本
+# 时间同步 高版本可直接执行
 chronyc makestep
 # 设置时区
 timedatectl set-timezone Asia/Shanghai
@@ -72,21 +69,21 @@ mkdir -p /etc/containerd/certs.d/registry.k8s.io
 
 touch /etc/containerd/certs.d/docker.io/hosts.toml
 touch /etc/containerd/certs.d/registry.k8s.io/hosts.toml
-
+---
 cat>/etc/containerd/certs.d/docker.io/hosts.toml<<EOF
 server = "https://docker.io"
 
 [host."https://dockerproxy.net/"]
   capabilities = ["pull", "resolve"]
 EOF
-
+---
 cat>/etc/containerd/certs.d/registry.k8s.io/hosts.toml<<EOF
 server = "registry.k8s.io"
 
 [host."k8s.mirror.nju.edu.cn"]
   capabilities = ["pull", "resolve"]
 EOF
-
+---
 systemctl restart containerd
 
 # yum 的 --downloadonly 选项会下载指定包及其所有依赖包
@@ -291,7 +288,7 @@ enabled=1
 gpgcheck=0 
 EOF
 
-# 安装
+# 安装 注意k8s版本
 yum makecache
 yum install -y kubelet kubeadm kubectl 
 ```

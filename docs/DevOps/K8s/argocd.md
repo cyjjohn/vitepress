@@ -12,11 +12,10 @@ kind: Ingress
 metadata:
   name: ingress
   namespace: argocd
-  annotations:
-    kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: nginx
   rules:
-  - host: argocd.kubemsb.com
+  - host: argocd.com
     http:
       paths:
       - pathType: Prefix
