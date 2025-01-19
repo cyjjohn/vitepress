@@ -50,7 +50,7 @@ COPY --from=builder /app/.vitepress/dist /usr/share/nginx/html
 EXPOSE 80
 
 # 启动 Nginx 服务
-CMD ["nginx", "-g", "daemon off;"
+CMD ["nginx", "-g", "daemon off;"]
 ```
 ### 资源清单
 - Deployment

@@ -68,7 +68,7 @@ vim /etc/containerd/config.toml
    config_path = "/etc/containerd/certs.d"
 [plugins."io.containerd.grpc.v1.cri".registry.configs."115.120.192.187".auth]
   username="admin"
-  password="Harbor1234
+  password="Harbor1234"
 ---
 
 # 默认读取config_path/<host_namespace>/hosts.toml
