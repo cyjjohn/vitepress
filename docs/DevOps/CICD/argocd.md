@@ -5,10 +5,9 @@ https://gh-proxy.com/https://raw.githubusercontent.com/argoproj/argo-cd/refs/tag
 ## 获取初始密码
 `k -n argocd get secrets argocd-initial-admin-secret -o jsonpath='{..password}'|base64 -d`
 
-## 默认必须有TLS证书才能访问 添加一下内容使用http
+## 默认必须有TLS证书才能访问 添加以下内容使用http
 ```yml
 # 找到argocd-server启动命令 添加参数 --insecure
-vim install.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -50,12 +49,12 @@ spec:
               number: 80
 ```
 
-## 安装ingress控制器
+## 安装ingress-nginx控制器
 官方资源清单
 https://gh-proxy.com/https://raw.githubusercontent.com/kubernetes/ingress-nginx/refs/tags/controller-v1.12.0/deploy/static/provider/cloud/deploy.yaml
 
 ## 确保LoadBalancer正常
-本地环境需安装metalLB用于测试
+本地环境需安装[LoadBalancer](/DevOps/K8s/负载均衡.md)用于测试
 
 ## 设置HOSTS
 在/etc/hosts中添加LoadBalancer绑定的地址

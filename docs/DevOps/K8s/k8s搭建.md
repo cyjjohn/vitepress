@@ -424,6 +424,12 @@ kubectl -n kubernetes-dashboard describe pods kubernetes-dashboard-kong-xxx
 # ClusterInformation: connection is unauthorized: Unauthorized – Failed to create pod sandbox: rpc error
 kubectl get pods -n kube-system --show-labels
 kubectl delete pods -n kube-system -l k8s-app=calico-node
+# 多网卡可能出现如下问题 需指定网卡
+# calico/node is not ready: BIRD is not ready: Error querying BIRD: unable to connect to BIRDv4 socket: dial unix /var/run/calico/bird.ctl: connect: connection refused
+# calico/node is not ready: BIRD is not ready: BGP not established
+kubectl set env daemonset/calico-node -n kube-system IP_AUTODETECTION_METHOD=interface=eth0
+netstat -anpt | grep bird
+
 
 # 使dashboard能外网访问
 # 修改为NodePort端口

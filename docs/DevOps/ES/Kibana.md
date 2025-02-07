@@ -29,7 +29,6 @@ data:
     elasticsearch.ssl.certificateAuthorities: /usr/share/kibana/config/certs/ca.crt
 ```
 - server.host 指定哪些对象可以连接kibana，可以结合使用防火墙或反向代理来限制访问
-- 注意
 ## service.yml
 ```yaml
 apiVersion: v1

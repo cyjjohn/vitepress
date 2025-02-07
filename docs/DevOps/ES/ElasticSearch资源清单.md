@@ -320,7 +320,7 @@ spec:
 - -addext "subjectAltName = DNS:yourserver.example.com": 非常重要! 添加主题备用名称 (SAN)，将 yourserver.example.com 替换为你的服务器域名或 IP 地址。 这可以防止出现证书不匹配的错误。 你可以添加多个 SAN，例如：subjectAltName = DNS:yourserver.example.com,DNS:yourserver
 
 3. 使用 CA 证书签署服务器 CSR:
-``openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 3650 -sha256 -extfile < (echo "subjectAltName = DNS:elasticsearch-master.kube-logging.svc.cluster.local,DNS:elasticsearch-master-0.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-1.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-2.elasticsearch-master-headless.kube-logging.svc.cluster.local")``
+``openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 3650 -sha256 -extfile <(echo "subjectAltName = DNS:elasticsearch-master.kube-logging.svc.cluster.local,DNS:elasticsearch-master-0.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-1.elasticsearch-master-headless.kube-logging.svc.cluster.local,DNS:elasticsearch-master-2.elasticsearch-master-headless.kube-logging.svc.cluster.local")``
 
 
 ## CSR中subjectAltName的DNS
