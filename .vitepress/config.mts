@@ -43,6 +43,7 @@ export default defineConfig({
           { text: "ElasticSearch系列", link: "/DevOps/ES/ElasticSearch资源清单" },
           { text: "Prometheus系列", link: "/DevOps/Prometheus/Prometheus基于kubernetes告警规则-告警等级划分" },
           { text: "CICD系列", link: "/DevOps/CICD/GitOps" },
+          { text: "中间件", link: "/DevOps/MiddleWare/harbor" },
         ],
       },
       {
