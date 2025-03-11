@@ -1,6 +1,8 @@
 # APISIX 
 云原生网关 可替代ingress-nginx-controller
 有dashboard可视化界面
+## 部署
+[官方指南](https://apisix.apache.org/zh/docs/apisix/installation-guide/)
 ## APISIX配置
 常用修改
 ```yml
