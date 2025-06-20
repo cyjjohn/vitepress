@@ -71,6 +71,10 @@ export default defineConfig({
             text: "NestJS",
             link: "/Backend/NestJS/nestJS+typeORM+graphQL+前端",
           },
+          {
+            text: "Java",
+            link: "/Backend/Java/一些tips",
+          },
         ],
       },
       {
