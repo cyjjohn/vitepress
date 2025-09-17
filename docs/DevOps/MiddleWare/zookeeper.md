@@ -28,7 +28,7 @@ echo "2" > /opt/data/zookeeper/myid  # worker2
 ```sh
 cat << EOF > /etc/profile.d/zookeeper.sh
 export ZOOKEEPER_HOME=/opt/zookeeper
-export PATH=$PATH:$ZOOKEEPER_HOME/bin
+export PATH=\$PATH:\$ZOOKEEPER_HOME/bin
 EOF
 
 source /etc/profile.d/zookeeper.sh

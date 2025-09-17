@@ -10,7 +10,7 @@
 ## Tekton Pipelines 安装
 
 ### 在 k8s 中部署
-
+[官方文档](https://tekton.dev/docs/installation/pipelines/)
 ```bash
 kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
 ```
@@ -23,16 +23,40 @@ kubectl -n tekton-pipelines get pods
 
 ## Dashboard 安装
 
-### 直接使用 k8s
-
+### 直接使用 k8s 部署
+[官方文档](https://tekton.dev/docs/dashboard/tutorial/)
 ```bash
-kubectl apply --filename https://storage.googleapis.com/tekton-releases/dashboard/latest/tekton-dashboard-release.yaml
+kubectl apply --filename https://storage.googleapis.com/tekton-releases/dashboard/latest/release-full.yaml
 ```
 
 ### 使用安装脚本
 
 ```bash
 curl -sL https://raw.githubusercontent.com/tektoncd/dashboard/main/scripts/release-installer | bash -s -- install latest --read-write
+```
+
+### 配置ingress加入到apisix
+```yml
+# tekton-dashboard-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tekton-dashboard-ingress
+  namespace: tekton-pipelines
+  annotations:
+    kubernetes.io/ingress.class: apisix
+spec:
+  rules:
+  - host: tekton.cyjjohn.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: tekton-dashboard
+            port:
+              number: 9097
 ```
 
 ## Cli 工具
@@ -218,3 +242,39 @@ spec:
   ```
 
   在这个例子中，`shared-data` Workspace 被 `fetch-source` Task 用于存储克隆的代码，然后被 `build-image` Task 用于构建镜像。
+
+
+## 添加仓库
+### 配置k8s凭证
+```bash
+# git仓库凭证
+ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa
+# 将公钥 ( ~/.ssh/id_rsa.pub ) 添加到 GitHub 之后
+kubectl create secret generic git-private-key \
+  --from-file=ssh-privatekey=~/.ssh/id_rsa \
+  -n my-tekton-namespace
+
+# docker仓库凭证
+kubectl create secret docker-registry docker-credentials \
+  --docker-server=<your-docker-registry-server> \
+  --docker-username=<your-docker-registry-username> \
+  --docker-password=<your-docker-registry-password> \
+  -n <your-namespace>
+
+```
+
+### 创建 Tekton PipelineResource (Git 仓库)
+```yml
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: my-git-repo
+  namespace: <your-namespace>
+spec:
+  type: git
+  params:
+    - name: url
+      value: <your-git-repository-url>
+    - name: revision
+      value: main  # 或你的分支名
+```
